@@ -1,46 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="#07111F" android:fillViewport="true"
-    android:layout_width="match_parent" android:layout_height="match_parent">
-    <LinearLayout android:orientation="vertical" android:padding="18dp"
-        android:layout_width="match_parent" android:layout_height="wrap_content">
+    android:background="#07111F"
+    android:fillViewport="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-        <ImageView android:id="@+id/brandPhoto" android:src="@drawable/ikramkheshgi_photo"
-            android:scaleType="centerCrop" android:contentDescription="ikramKheshgi"
-            android:layout_gravity="center" android:layout_width="150dp" android:layout_height="150dp"/>
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="18dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-        <TextView android:text="ikramKheshgi" android:textColor="#FFFFFF"
-            android:textSize="30sp" android:textStyle="bold" android:gravity="center"
-            android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- POWERED BY -->
+        <TextView
+            android:text="POWERED BY"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginTop="25dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <TextView android:text="POPUP • AD DETECTOR" android:textColor="#19B8FF"
-            android:textSize="14sp" android:textStyle="bold" android:gravity="center"
-            android:layout_marginTop="2dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- Developer name -->
+        <TextView
+            android:text="ikramKheshgi"
+            android:textColor="#19B8FF"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_marginTop="2dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <TextView android:text="Find apps that may be showing unwanted pop-ups or ads."
-            android:textColor="#D9E7F4" android:textSize="16sp" android:gravity="center"
-            android:layout_marginTop="14dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- App title -->
+        <TextView
+            android:text="POPUP • AD DETECTOR"
+            android:textColor="#19B8FF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginTop="25dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <Button android:id="@+id/enableDetector" android:text="ENABLE POPUP DETECTOR"
-            android:layout_marginTop="16dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- Description -->
+        <TextView
+            android:text="Find apps that may be showing unwanted pop-ups or ads."
+            android:textColor="#D9E7F4"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_marginTop="14dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <Button android:id="@+id/scanApps" android:text="SCAN INSTALLED APPS"
-            android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- Enable detector -->
+        <Button
+            android:id="@+id/enableDetector"
+            android:text="ENABLE POPUP DETECTOR"
+            android:layout_marginTop="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <TextView android:id="@+id/serviceStatus" android:textColor="#19B8FF"
-            android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="10dp"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- Scan apps -->
+        <Button
+            android:id="@+id/scanApps"
+            android:text="SCAN INSTALLED APPS"
+            android:layout_marginTop="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <TextView android:text="Recent detections" android:textColor="#FFFFFF"
-            android:textSize="21sp" android:textStyle="bold" android:layout_marginTop="18dp"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- Service status -->
+        <TextView
+            android:id="@+id/serviceStatus"
+            android:textColor="#19B8FF"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:layout_marginTop="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <TextView android:id="@+id/detections" android:textColor="#D9E7F4"
-            android:textSize="14sp" android:padding="12dp" android:background="#0E1C2E"
-            android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- Recent detections title -->
+        <TextView
+            android:text="Recent detections"
+            android:textColor="#FFFFFF"
+            android:textSize="21sp"
+            android:textStyle="bold"
+            android:layout_marginTop="18dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-        <TextView android:text="Created by ikramKheshgi • v1.0"
-            android:textColor="#19B8FF" android:gravity="center" android:layout_marginTop="18dp"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <!-- Detection cards are added here by MainActivity -->
+        <LinearLayout
+            android:id="@+id/detectionsContainer"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"/>
+
+        <!-- Footer -->
+        <TextView
+            android:text="Powered by ikramKheshgi"
+            android:textColor="#19B8FF"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginTop="25dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
     </LinearLayout>
+
 </ScrollView>
