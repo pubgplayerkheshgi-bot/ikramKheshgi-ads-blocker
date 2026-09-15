@@ -1,0 +1,10 @@
+1. Install Android Studio.
+2. Open the IkramKheshgi_PopupAdDetector folder.
+3. Let Gradle sync finish.
+4. Select Build > Build APK(s).
+5. Install app-debug.apk on the Android phone.
+6. Open the app and tap ENABLE POPUP DETECTOR.
+7. In Android Accessibility settings, enable ikramKheshgi Popup Detector.
+8. Return to the app and use the phone normally; suspicious events will be logged.
+
+The app does not need internet access.

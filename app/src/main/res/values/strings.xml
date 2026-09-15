@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ikramKheshgi Popup Detector</string>
+    <string name="creator">Created by ikramKheshgi</string>
+    <string name="accessibility_description">Detects suspicious popup and ad windows and records the app package that generated the accessibility window event.</string>
+</resources>
