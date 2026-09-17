@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:background="#07111F"
     android:fillViewport="true"
     android:layout_width="match_parent"
@@ -11,99 +13,124 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- POWERED BY -->
+        <!-- HEADER -->
+
         <TextView
             android:text="POWERED BY"
             android:textColor="#FFFFFF"
-            android:textSize="32sp"
+            android:textSize="30sp"
             android:textStyle="bold"
             android:gravity="center"
             android:layout_marginTop="25dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
-        <!-- Developer name -->
         <TextView
             android:text="ikramKheshgi"
             android:textColor="#19B8FF"
-            android:textSize="18sp"
+            android:textSize="19sp"
+            android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="3dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
-        <!-- App title -->
         <TextView
             android:text="POPUP • AD DETECTOR"
             android:textColor="#19B8FF"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginTop="25dp"
+            android:layout_marginTop="22dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
-        <!-- Description -->
         <TextView
-            android:text="Find apps that may be showing unwanted pop-ups or ads."
+            android:text="Detect possible unwanted ads and pop-ups from third-party apps."
             android:textColor="#D9E7F4"
             android:textSize="16sp"
             android:gravity="center"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="12dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
-        <!-- Enable detector -->
+        <!-- DETECTOR CONTROL -->
+
         <Button
             android:id="@+id/enableDetector"
             android:text="ENABLE POPUP DETECTOR"
-            android:layout_marginTop="16dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <!-- Scan apps -->
-        <Button
-            android:id="@+id/scanApps"
-            android:text="SCAN INSTALLED APPS"
-            android:layout_marginTop="8dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <!-- Service status -->
-        <TextView
-            android:id="@+id/serviceStatus"
-            android:textColor="#19B8FF"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:layout_marginTop="10dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <!-- Recent detections title -->
-        <TextView
-            android:text="Recent detections"
-            android:textColor="#FFFFFF"
-            android:textSize="21sp"
             android:textStyle="bold"
             android:layout_marginTop="18dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
-        <!-- Detection cards are added here by MainActivity -->
+        <Button
+            android:id="@+id/scanApps"
+            android:text="SCAN INSTALLED APPS"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- STATUS -->
+
+        <TextView
+            android:id="@+id/serviceStatus"
+            android:text="○ Detector is off"
+            android:textColor="#19B8FF"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginTop="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- DETECTIONS -->
+
+        <TextView
+            android:text="Detected Apps"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:text="Possible ad or pop-up sources detected by the monitor."
+            android:textColor="#AFC2D4"
+            android:textSize="13sp"
+            android:layout_marginTop="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
         <LinearLayout
             android:id="@+id/detectionsContainer"
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="12dp"/>
 
-        <!-- Footer -->
+        <!-- PRIVACY / SAFETY NOTE -->
+
+        <TextView
+            android:text="Only third-party apps are shown in detection results."
+            android:textColor="#7FC8FF"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginTop="20dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- FOOTER -->
+
         <TextView
             android:text="Powered by ikramKheshgi"
             android:textColor="#19B8FF"
             android:textSize="13sp"
             android:gravity="center"
             android:layout_marginTop="25dp"
+            android:layout_marginBottom="20dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
