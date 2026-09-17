@@ -5,6 +5,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageInfo;
+import android.content.pm.ApplicationInfo;
 import android.os.SystemClock;
 
 import java.text.SimpleDateFormat;
@@ -35,6 +36,11 @@ public class PopupAccessibilityService extends AccessibilityService {
             return;
         }
 
+        // Only detect third-party/user-installed apps.
+        if (!isThirdPartyApp(pkg)) {
+            return;
+        }
+
         long now = SystemClock.uptimeMillis();
 
         if (pkg.equals(lastPackage) && now - lastEvent < 1200) {
@@ -56,14 +62,13 @@ public class PopupAccessibilityService extends AccessibilityService {
         }
 
         String text = collectText(event);
+
         boolean adHint = containsAdWords(text);
         boolean overlayRequested = requestsOverlay(pkg);
 
         /*
          * Only record a possible detection when there is
          * an ad/popup text hint or the app requests overlay permission.
-         * Normal windows such as Launcher or ChatGPT are not shown
-         * as detections.
          */
         if (!adHint && !overlayRequested) {
             return;
@@ -88,7 +93,6 @@ public class PopupAccessibilityService extends AccessibilityService {
         String[] lines = old.split("\n");
 
         StringBuilder out = new StringBuilder(line);
-
         int count = 1;
 
         for (String l : lines) {
@@ -105,8 +109,7 @@ public class PopupAccessibilityService extends AccessibilityService {
                 .apply();
 
         /*
-         * Keep the old log too, so existing diagnostic information
-         * is not lost.
+         * Keep the old diagnostic log too.
          */
         String oldLog = getSharedPreferences(
                 "detector",
@@ -138,8 +141,32 @@ public class PopupAccessibilityService extends AccessibilityService {
                 .apply();
     }
 
+    /*
+     * Check whether the detected package is a third-party app.
+     *
+     * System applications are ignored.
+     */
+    private boolean isThirdPartyApp(String pkg) {
+
+        try {
+            ApplicationInfo appInfo =
+                    getPackageManager()
+                            .getApplicationInfo(pkg, 0);
+
+            return (appInfo.flags &
+                    ApplicationInfo.FLAG_SYSTEM) == 0;
+
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private String clean(String value) {
-        if (value == null) return "";
+
+        if (value == null) {
+            return "";
+        }
+
         return value
                 .replace("\t", " ")
                 .replace("\n", " ")
@@ -149,6 +176,7 @@ public class PopupAccessibilityService extends AccessibilityService {
     private boolean requestsOverlay(String pkg) {
 
         try {
+
             PackageInfo p =
                     getPackageManager().getPackageInfo(
                             pkg,
@@ -161,6 +189,7 @@ public class PopupAccessibilityService extends AccessibilityService {
 
                     if ("android.permission.SYSTEM_ALERT_WINDOW"
                             .equals(perm)) {
+
                         return true;
                     }
                 }
@@ -195,7 +224,9 @@ public class PopupAccessibilityService extends AccessibilityService {
 
         if (source != null) {
 
-            CharSequence text = source.getText();
+            CharSequence text =
+                    source.getText();
+
             CharSequence content =
                     source.getContentDescription();
 
@@ -217,6 +248,7 @@ public class PopupAccessibilityService extends AccessibilityService {
     private boolean containsAdWords(String s) {
 
         String[] words = {
+
                 "advertisement",
                 "sponsored",
                 "install now",
