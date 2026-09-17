@@ -29,11 +29,23 @@ public class MainActivity extends Activity {
         status = findViewById(R.id.serviceStatus);
         detectionsContainer = findViewById(R.id.detectionsContainer);
 
-        findViewById(R.id.enableDetector).setOnClickListener(v ->
-                startActivity(
-                        new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                )
-        );
+        findViewById(R.id.enableDetector).setOnClickListener(v -> {
+
+            try {
+                Intent intent =
+                        new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+
+                startActivity(intent);
+
+            } catch (Exception e) {
+
+                Toast.makeText(
+                        this,
+                        "Unable to open Accessibility Settings.",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
+        });
 
         findViewById(R.id.scanApps).setOnClickListener(v ->
                 scanApps()
@@ -51,8 +63,8 @@ public class MainActivity extends Activity {
         showDetections();
 
         /*
-         * Once Accessibility is enabled, ask for
-         * permission to display the floating shortcut.
+         * Once Accessibility is enabled,
+         * ask for overlay permission.
          */
         if (isAccessibilityEnabled() &&
                 !Settings.canDrawOverlays(this)) {
@@ -64,6 +76,7 @@ public class MainActivity extends Activity {
             ).show();
 
             try {
+
                 Intent intent = new Intent(
                         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName())
@@ -184,7 +197,9 @@ public class MainActivity extends Activity {
 
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(16, 16, 16, 16);
-        card.setBackgroundColor(Color.rgb(14, 28, 46));
+        card.setBackgroundColor(
+                Color.rgb(14, 28, 46)
+        );
 
         LinearLayout.LayoutParams cardParams =
                 new LinearLayout.LayoutParams(
@@ -215,7 +230,9 @@ public class MainActivity extends Activity {
 
         LinearLayout information = new LinearLayout(this);
 
-        information.setOrientation(LinearLayout.VERTICAL);
+        information.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
         LinearLayout.LayoutParams infoParams =
                 new LinearLayout.LayoutParams(
@@ -233,8 +250,14 @@ public class MainActivity extends Activity {
 
         TextView title = new TextView(this);
 
-        title.setText("🚨 Possible Ad/Popup");
-        title.setTextColor(Color.rgb(255, 190, 70));
+        title.setText(
+                "🚨 Possible Ad/Popup"
+        );
+
+        title.setTextColor(
+                Color.rgb(255, 190, 70)
+        );
+
         title.setTextSize(17);
         title.setTypeface(null, 1);
 
@@ -268,7 +291,10 @@ public class MainActivity extends Activity {
                 "Package: " + packageName
         );
 
-        pkg.setTextColor(Color.rgb(190, 210, 225));
+        pkg.setTextColor(
+                Color.rgb(190, 210, 225)
+        );
+
         pkg.setTextSize(13);
         pkg.setPadding(0, 12, 0, 10);
 
@@ -332,7 +358,8 @@ public class MainActivity extends Activity {
 
     void scanApps() {
 
-        PackageManager pm = getPackageManager();
+        PackageManager pm =
+                getPackageManager();
 
         ArrayList<String> found =
                 new ArrayList<>();
