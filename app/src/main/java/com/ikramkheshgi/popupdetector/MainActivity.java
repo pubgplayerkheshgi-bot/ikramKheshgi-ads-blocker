@@ -11,7 +11,6 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.*;
 
 import java.util.*;
@@ -24,15 +23,21 @@ public class MainActivity extends Activity {
     @Override
     public void onCreate(Bundle b) {
         super.onCreate(b);
+
         setContentView(R.layout.activity_main);
 
         status = findViewById(R.id.serviceStatus);
         detectionsContainer = findViewById(R.id.detectionsContainer);
 
         findViewById(R.id.enableDetector).setOnClickListener(v ->
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+                startActivity(
+                        new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                )
+        );
 
-        findViewById(R.id.scanApps).setOnClickListener(v -> scanApps());
+        findViewById(R.id.scanApps).setOnClickListener(v ->
+                scanApps()
+        );
 
         updateStatus();
         showDetections();
@@ -41,13 +46,37 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+
         updateStatus();
         showDetections();
+
+        /*
+         * Once Accessibility is enabled, ask for
+         * permission to display the floating shortcut.
+         */
+        if (isAccessibilityEnabled() &&
+                !Settings.canDrawOverlays(this)) {
+
+            Toast.makeText(
+                    this,
+                    "Please allow floating shortcut permission.",
+                    Toast.LENGTH_LONG
+            ).show();
+
+            try {
+                Intent intent = new Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName())
+                );
+
+                startActivity(intent);
+
+            } catch (Exception ignored) {
+            }
+        }
     }
 
-    void updateStatus() {
-
-        boolean enabled = false;
+    boolean isAccessibilityEnabled() {
 
         String wanted = new ComponentName(
                 this,
@@ -60,15 +89,37 @@ public class MainActivity extends Activity {
                         Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
                 );
 
-        if (enabledServices != null) {
-            enabled = enabledServices.contains(wanted);
-        }
+        return enabledServices != null &&
+                enabledServices.contains(wanted);
+    }
 
-        status.setText(
-                enabled
-                        ? "● DETECTOR ACTIVE"
-                        : "○ Detector is off — enable Accessibility service"
-        );
+    void updateStatus() {
+
+        boolean enabled = isAccessibilityEnabled();
+
+        if (enabled) {
+
+            if (Settings.canDrawOverlays(this)) {
+
+                status.setText(
+                        "● DETECTOR ACTIVE\n" +
+                        "Floating shortcut is ready"
+                );
+
+            } else {
+
+                status.setText(
+                        "● DETECTOR ACTIVE\n" +
+                        "Allow floating shortcut permission"
+                );
+            }
+
+        } else {
+
+            status.setText(
+                    "○ Detector is off — enable Accessibility service"
+            );
+        }
     }
 
     void showDetections() {
@@ -94,6 +145,7 @@ public class MainActivity extends Activity {
             empty.setPadding(16, 16, 16, 16);
 
             detectionsContainer.addView(empty);
+
             return;
         }
 
@@ -174,7 +226,10 @@ public class MainActivity extends Activity {
 
         infoParams.setMargins(14, 0, 0, 0);
 
-        top.addView(information, infoParams);
+        top.addView(
+                information,
+                infoParams
+        );
 
         TextView title = new TextView(this);
 
@@ -196,7 +251,10 @@ public class MainActivity extends Activity {
 
         TextView timeView = new TextView(this);
 
-        timeView.setText("Detected: " + time);
+        timeView.setText(
+                "Detected: " + time
+        );
+
         timeView.setTextColor(Color.LTGRAY);
         timeView.setTextSize(13);
 
@@ -248,6 +306,7 @@ public class MainActivity extends Activity {
 
         if (packageName == null ||
                 packageName.trim().isEmpty()) {
+
             return;
         }
 
@@ -275,7 +334,8 @@ public class MainActivity extends Activity {
 
         PackageManager pm = getPackageManager();
 
-        ArrayList<String> found = new ArrayList<>();
+        ArrayList<String> found =
+                new ArrayList<>();
 
         for (ApplicationInfo a :
                 pm.getInstalledApplications(
@@ -284,6 +344,7 @@ public class MainActivity extends Activity {
 
             if ((a.flags &
                     ApplicationInfo.FLAG_SYSTEM) != 0) {
+
                 continue;
             }
 
@@ -338,7 +399,8 @@ public class MainActivity extends Activity {
 
             for (String item : found) {
 
-                String[] parts = item.split("\\n");
+                String[] parts =
+                        item.split("\\n");
 
                 if (parts.length >= 2) {
 
@@ -356,9 +418,10 @@ public class MainActivity extends Activity {
     int dp(int value) {
 
         return Math.round(
-                value * getResources()
-                        .getDisplayMetrics()
-                        .density
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
         );
     }
 }
