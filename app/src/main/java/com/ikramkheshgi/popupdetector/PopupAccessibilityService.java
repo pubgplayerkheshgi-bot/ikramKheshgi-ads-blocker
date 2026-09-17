@@ -29,15 +29,15 @@ public class PopupAccessibilityService extends AccessibilityService {
     private WindowManager windowManager;
     private TextView floatingButton;
 
+    private int detectionCount = 0;
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
 
-        /*
-         * Show floating shortcut when the detector service
-         * is connected and overlay permission is available.
-         */
+        loadDetectionCount();
         showFloatingButton();
+        updateFloatingButton();
     }
 
     @Override
@@ -105,6 +105,14 @@ public class PopupAccessibilityService extends AccessibilityService {
         if (!adHint && !overlayRequested) {
             return;
         }
+
+        /*
+         * New detection found.
+         */
+        detectionCount++;
+
+        saveDetectionCount();
+        updateFloatingButton();
 
         String time =
                 new SimpleDateFormat(
@@ -199,11 +207,6 @@ public class PopupAccessibilityService extends AccessibilityService {
                         diagnosticOut.toString()
                 )
                 .apply();
-
-        /*
-         * Change 3 will later update this button
-         * with a red detection number.
-         */
     }
 
     private boolean isThirdPartyApp(String pkg) {
@@ -226,9 +229,31 @@ public class PopupAccessibilityService extends AccessibilityService {
         }
     }
 
-    /*
-     * Create the small floating shortcut button.
-     */
+    private void loadDetectionCount() {
+
+        detectionCount =
+                getSharedPreferences(
+                        "detector",
+                        MODE_PRIVATE
+                ).getInt(
+                        "detection_count",
+                        0
+                );
+    }
+
+    private void saveDetectionCount() {
+
+        getSharedPreferences(
+                "detector",
+                MODE_PRIVATE
+        ).edit()
+                .putInt(
+                        "detection_count",
+                        detectionCount
+                )
+                .apply();
+    }
+
     private void showFloatingButton() {
 
         if (!Settings.canDrawOverlays(this)) {
@@ -248,13 +273,15 @@ public class PopupAccessibilityService extends AccessibilityService {
         floatingButton =
                 new TextView(this);
 
-        floatingButton.setText("🔘");
         floatingButton.setTextSize(22);
+
         floatingButton.setGravity(
                 Gravity.CENTER
         );
 
-        floatingButton.setTextColor(Color.WHITE);
+        floatingButton.setTextColor(
+                Color.WHITE
+        );
 
         GradientDrawable background =
                 new GradientDrawable();
@@ -297,6 +324,9 @@ public class PopupAccessibilityService extends AccessibilityService {
 
         floatingButton.setOnClickListener(v -> {
 
+            /*
+             * Open the detection screen.
+             */
             Intent intent =
                     new Intent(
                             PopupAccessibilityService.this,
@@ -309,6 +339,13 @@ public class PopupAccessibilityService extends AccessibilityService {
             );
 
             startActivity(intent);
+
+            /*
+             * Clear the red counter after opening.
+             */
+            detectionCount = 0;
+            saveDetectionCount();
+            updateFloatingButton();
         });
 
         try {
@@ -319,6 +356,64 @@ public class PopupAccessibilityService extends AccessibilityService {
             );
 
         } catch (Exception ignored) {
+        }
+    }
+
+    private void updateFloatingButton() {
+
+        if (floatingButton == null) {
+            return;
+        }
+
+        if (detectionCount <= 0) {
+
+            floatingButton.setText("🔘");
+
+            GradientDrawable background =
+                    new GradientDrawable();
+
+            background.setShape(
+                    GradientDrawable.OVAL
+            );
+
+            background.setColor(
+                    Color.rgb(25, 110, 220)
+            );
+
+            background.setStroke(
+                    2,
+                    Color.WHITE
+            );
+
+            floatingButton.setBackground(
+                    background
+            );
+
+        } else {
+
+            floatingButton.setText(
+                    "🔴" + detectionCount
+            );
+
+            GradientDrawable background =
+                    new GradientDrawable();
+
+            background.setShape(
+                    GradientDrawable.OVAL
+            );
+
+            background.setColor(
+                    Color.rgb(190, 25, 35)
+            );
+
+            background.setStroke(
+                    2,
+                    Color.WHITE
+            );
+
+            floatingButton.setBackground(
+                    background
+            );
         }
     }
 
