@@ -13,7 +13,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- HEADER -->
+        <!-- HEADER / INTRO IMAGE -->
+
+        <ImageView
+            android:src="@drawable/ikramkheshgi_intro"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="15dp"
+            android:scaleType="centerInside"
+            android:contentDescription="ikramKheshgi"/>
 
         <TextView
             android:text="POWERED BY"
@@ -21,7 +30,7 @@
             android:textSize="30sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginTop="25dp"
+            android:layout_marginTop="15dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
