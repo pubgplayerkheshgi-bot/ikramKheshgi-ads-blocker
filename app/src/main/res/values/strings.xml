@@ -1,5 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
 <resources>
+
     <string name="app_name">ikramKheshgi Popup Detector</string>
+
     <string name="creator">Created by ikramKheshgi</string>
-    <string name="accessibility_description">Detects suspicious popup and ad windows and records the app package that generated the accessibility window event.</string>
+
+    <string name="accessibility_description">This service monitors visible app windows and on-screen text to identify possible advertisements or pop-ups from third-party apps. Accessibility access is required for background monitoring. The app does not automatically uninstall, install, or control other apps.</string>
+
 </resources>
