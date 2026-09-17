@@ -7,6 +7,15 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.ApplicationInfo;
 import android.os.SystemClock;
+import android.provider.Settings;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -17,14 +26,30 @@ public class PopupAccessibilityService extends AccessibilityService {
     private long lastEvent = 0;
     private String lastPackage = "";
 
+    private WindowManager windowManager;
+    private TextView floatingButton;
+
     @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+
+        /*
+         * Show floating shortcut when the detector service
+         * is connected and overlay permission is available.
+         */
+        showFloatingButton();
+    }
+
+    @Override
+    public void onAccessibilityEvent(
+            AccessibilityEvent event) {
 
         int type = event.getEventType();
 
         if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
             type != AccessibilityEvent.TYPE_WINDOWS_CHANGED &&
             type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+
             return;
         }
 
@@ -32,18 +57,24 @@ public class PopupAccessibilityService extends AccessibilityService {
                 ? ""
                 : event.getPackageName().toString();
 
-        if (pkg.isEmpty() || pkg.equals(getPackageName())) {
+        if (pkg.isEmpty() ||
+                pkg.equals(getPackageName())) {
+
             return;
         }
 
-        // Only detect third-party/user-installed apps.
+        /*
+         * Only detect third-party/user-installed apps.
+         */
         if (!isThirdPartyApp(pkg)) {
             return;
         }
 
         long now = SystemClock.uptimeMillis();
 
-        if (pkg.equals(lastPackage) && now - lastEvent < 1200) {
+        if (pkg.equals(lastPackage) &&
+                now - lastEvent < 1200) {
+
             return;
         }
 
@@ -53,31 +84,33 @@ public class PopupAccessibilityService extends AccessibilityService {
         String label = pkg;
 
         try {
+
             label = getPackageManager()
                     .getApplicationLabel(
                             getPackageManager()
                                     .getApplicationInfo(pkg, 0))
                     .toString();
+
         } catch (Exception ignored) {
         }
 
         String text = collectText(event);
 
-        boolean adHint = containsAdWords(text);
-        boolean overlayRequested = requestsOverlay(pkg);
+        boolean adHint =
+                containsAdWords(text);
 
-        /*
-         * Only record a possible detection when there is
-         * an ad/popup text hint or the app requests overlay permission.
-         */
+        boolean overlayRequested =
+                requestsOverlay(pkg);
+
         if (!adHint && !overlayRequested) {
             return;
         }
 
-        String time = new SimpleDateFormat(
-                "HH:mm:ss",
-                Locale.getDefault()
-        ).format(new Date());
+        String time =
+                new SimpleDateFormat(
+                        "HH:mm:ss",
+                        Locale.getDefault()
+                ).format(new Date());
 
         String line =
                 time + "\t" +
@@ -85,19 +118,30 @@ public class PopupAccessibilityService extends AccessibilityService {
                 clean(label) + "\t" +
                 clean(pkg);
 
-        String old = getSharedPreferences(
-                "detector",
-                MODE_PRIVATE
-        ).getString("detections_v2", "");
+        String old =
+                getSharedPreferences(
+                        "detector",
+                        MODE_PRIVATE
+                ).getString(
+                        "detections_v2",
+                        ""
+                );
 
-        String[] lines = old.split("\n");
+        String[] lines =
+                old.split("\n");
 
-        StringBuilder out = new StringBuilder(line);
+        StringBuilder out =
+                new StringBuilder(line);
+
         int count = 1;
 
         for (String l : lines) {
-            if (!l.trim().isEmpty() && count++ < 20) {
-                out.append("\n").append(l);
+
+            if (!l.trim().isEmpty() &&
+                    count++ < 20) {
+
+                out.append("\n")
+                        .append(l);
             }
         }
 
@@ -105,22 +149,30 @@ public class PopupAccessibilityService extends AccessibilityService {
                 "detector",
                 MODE_PRIVATE
         ).edit()
-                .putString("detections_v2", out.toString())
+                .putString(
+                        "detections_v2",
+                        out.toString()
+                )
                 .apply();
 
-        /*
-         * Keep the old diagnostic log too.
-         */
-        String oldLog = getSharedPreferences(
-                "detector",
-                MODE_PRIVATE
-        ).getString("log", "");
+        String oldLog =
+                getSharedPreferences(
+                        "detector",
+                        MODE_PRIVATE
+                ).getString(
+                        "log",
+                        ""
+                );
 
         String diagnostic =
-                time + " [SUSPECT] " +
-                label + " " + pkg;
+                time +
+                " [SUSPECT] " +
+                label +
+                " " +
+                pkg;
 
-        String[] oldLines = oldLog.split("\n");
+        String[] oldLines =
+                oldLog.split("\n");
 
         StringBuilder diagnosticOut =
                 new StringBuilder(diagnostic);
@@ -128,8 +180,13 @@ public class PopupAccessibilityService extends AccessibilityService {
         int diagnosticCount = 1;
 
         for (String l : oldLines) {
-            if (!l.trim().isEmpty() && diagnosticCount++ < 12) {
-                diagnosticOut.append("\n\n").append(l);
+
+            if (!l.trim().isEmpty() &&
+                    diagnosticCount++ < 12) {
+
+                diagnosticOut
+                        .append("\n\n")
+                        .append(l);
             }
         }
 
@@ -137,28 +194,160 @@ public class PopupAccessibilityService extends AccessibilityService {
                 "detector",
                 MODE_PRIVATE
         ).edit()
-                .putString("log", diagnosticOut.toString())
+                .putString(
+                        "log",
+                        diagnosticOut.toString()
+                )
                 .apply();
+
+        /*
+         * Change 3 will later update this button
+         * with a red detection number.
+         */
     }
 
-    /*
-     * Check whether the detected package is a third-party app.
-     *
-     * System applications are ignored.
-     */
     private boolean isThirdPartyApp(String pkg) {
 
         try {
+
             ApplicationInfo appInfo =
                     getPackageManager()
-                            .getApplicationInfo(pkg, 0);
+                            .getApplicationInfo(
+                                    pkg,
+                                    0
+                            );
 
             return (appInfo.flags &
                     ApplicationInfo.FLAG_SYSTEM) == 0;
 
         } catch (Exception ignored) {
+
             return false;
         }
+    }
+
+    /*
+     * Create the small floating shortcut button.
+     */
+    private void showFloatingButton() {
+
+        if (!Settings.canDrawOverlays(this)) {
+            return;
+        }
+
+        if (floatingButton != null) {
+            return;
+        }
+
+        windowManager =
+                (WindowManager)
+                        getSystemService(
+                                WINDOW_SERVICE
+                        );
+
+        floatingButton =
+                new TextView(this);
+
+        floatingButton.setText("🔘");
+        floatingButton.setTextSize(22);
+        floatingButton.setGravity(
+                Gravity.CENTER
+        );
+
+        floatingButton.setTextColor(Color.WHITE);
+
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setShape(
+                GradientDrawable.OVAL
+        );
+
+        background.setColor(
+                Color.rgb(25, 110, 220)
+        );
+
+        background.setStroke(
+                2,
+                Color.WHITE
+        );
+
+        floatingButton.setBackground(
+                background
+        );
+
+        int size = dp(58);
+
+        WindowManager.LayoutParams params =
+                new WindowManager.LayoutParams(
+                        size,
+                        size,
+                        android.os.Build.VERSION.SDK_INT >= 26
+                                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                                : WindowManager.LayoutParams.TYPE_PHONE,
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                        PixelFormat.TRANSLUCENT
+                );
+
+        params.gravity =
+                Gravity.TOP | Gravity.END;
+
+        params.x = dp(12);
+        params.y = dp(180);
+
+        floatingButton.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            PopupAccessibilityService.this,
+                            MainActivity.class
+                    );
+
+            intent.addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK |
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            );
+
+            startActivity(intent);
+        });
+
+        try {
+
+            windowManager.addView(
+                    floatingButton,
+                    params
+            );
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void removeFloatingButton() {
+
+        if (floatingButton != null &&
+                windowManager != null) {
+
+            try {
+
+                windowManager.removeView(
+                        floatingButton
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            floatingButton = null;
+        }
+    }
+
+    private int dp(int value) {
+
+        return Math.round(
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
+        );
     }
 
     private String clean(String value) {
@@ -178,14 +367,16 @@ public class PopupAccessibilityService extends AccessibilityService {
         try {
 
             PackageInfo p =
-                    getPackageManager().getPackageInfo(
-                            pkg,
-                            PackageManager.GET_PERMISSIONS
-                    );
+                    getPackageManager()
+                            .getPackageInfo(
+                                    pkg,
+                                    PackageManager.GET_PERMISSIONS
+                            );
 
             if (p.requestedPermissions != null) {
 
-                for (String perm : p.requestedPermissions) {
+                for (String perm :
+                        p.requestedPermissions) {
 
                     if ("android.permission.SYSTEM_ALERT_WINDOW"
                             .equals(perm)) {
@@ -201,21 +392,28 @@ public class PopupAccessibilityService extends AccessibilityService {
         return false;
     }
 
-    private String collectText(AccessibilityEvent event) {
+    private String collectText(
+            AccessibilityEvent event) {
 
-        StringBuilder s = new StringBuilder();
+        StringBuilder s =
+                new StringBuilder();
 
         CharSequence description =
                 event.getContentDescription();
 
         if (description != null) {
-            s.append(description).append(' ');
+
+            s.append(description)
+                    .append(' ');
         }
 
-        for (CharSequence t : event.getText()) {
+        for (CharSequence t :
+                event.getText()) {
 
             if (t != null) {
-                s.append(t).append(' ');
+
+                s.append(t)
+                        .append(' ');
             }
         }
 
@@ -231,10 +429,13 @@ public class PopupAccessibilityService extends AccessibilityService {
                     source.getContentDescription();
 
             if (text != null) {
-                s.append(text).append(' ');
+
+                s.append(text)
+                        .append(' ');
             }
 
             if (content != null) {
+
                 s.append(content);
             }
 
@@ -242,10 +443,13 @@ public class PopupAccessibilityService extends AccessibilityService {
         }
 
         return s.toString()
-                .toLowerCase(Locale.ROOT);
+                .toLowerCase(
+                        Locale.ROOT
+                );
     }
 
-    private boolean containsAdWords(String s) {
+    private boolean containsAdWords(
+            String s) {
 
         String[] words = {
 
@@ -275,5 +479,13 @@ public class PopupAccessibilityService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
+    }
+
+    @Override
+    public void onDestroy() {
+
+        removeFloatingButton();
+
+        super.onDestroy();
     }
 }
