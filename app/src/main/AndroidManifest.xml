@@ -18,9 +18,12 @@
         android:allowBackup="false"
         android:supportsRtl="true">
 
-        <!-- Main application screen -->
+        <!--
+            Professional 3-second intro screen.
+            This is now the launcher activity.
+        -->
         <activity
-            android:name=".MainActivity"
+            android:name=".SplashActivity"
             android:exported="true">
 
             <intent-filter>
@@ -33,6 +36,12 @@
 
             </intent-filter>
 
+        </activity>
+
+        <!-- Main application screen -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
         </activity>
 
         <!--
