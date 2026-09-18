@@ -259,8 +259,7 @@ public class MainActivity extends Activity {
         );
 
         title.setTextSize(17);
-        title.setTypeface(null, 1);
-
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
         information.addView(title);
 
         TextView name = new TextView(this);
