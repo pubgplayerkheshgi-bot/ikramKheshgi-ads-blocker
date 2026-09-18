@@ -267,8 +267,7 @@ public class MainActivity extends Activity {
         name.setText(appName);
         name.setTextColor(Color.WHITE);
         name.setTextSize(18);
-        name.setTypeface(null, 1);
-
+        name.setTypeface(null, android.graphics.Typeface.BOLD);
         information.addView(name);
 
         TextView timeView = new TextView(this);
