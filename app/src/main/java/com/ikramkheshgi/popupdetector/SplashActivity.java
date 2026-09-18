@@ -1,15 +1,13 @@
 package com.ikramkheshgi.popupdetector;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-public class SplashActivity extends AppCompatActivity {
+public class SplashActivity extends Activity {
 
     private static final long SPLASH_DURATION = 3000;
 
@@ -22,11 +20,12 @@ public class SplashActivity extends AppCompatActivity {
         ImageView introImage = findViewById(R.id.introImage);
         TextView appName = findViewById(R.id.appName);
 
-        // Initial state
+        // Initial photo state
         introImage.setAlpha(0f);
         introImage.setScaleX(0.92f);
         introImage.setScaleY(0.92f);
 
+        // Initial app-name state
         appName.setAlpha(0f);
         appName.setTranslationY(40f);
 
@@ -39,7 +38,7 @@ public class SplashActivity extends AppCompatActivity {
                 .setInterpolator(new AccelerateDecelerateInterpolator())
                 .start();
 
-        // App name animation
+        // App-name animation
         appName.animate()
                 .alpha(1f)
                 .translationY(0f)
@@ -50,10 +49,13 @@ public class SplashActivity extends AppCompatActivity {
 
         // Open main screen after 3 seconds
         introImage.postDelayed(() -> {
-            Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+            Intent intent = new Intent(
+                    SplashActivity.this,
+                    MainActivity.class
+            );
+
             startActivity(intent);
 
-            // Smooth transition
             overridePendingTransition(
                     android.R.anim.fade_in,
                     android.R.anim.fade_out
