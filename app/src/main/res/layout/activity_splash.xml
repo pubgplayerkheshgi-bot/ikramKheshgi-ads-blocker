@@ -3,28 +3,6 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#FFFFFF">
-
-    <ImageView
-        android:id="@+id/introImage"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/ikramkheshgi_intro"
-        android:scaleType="centerInside"
-        android:contentDescription="ikramKheshgi introduction" />
-
-    <TextView
-        android:id="@+id/appName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="70dp"
-        android:text="ikramKheshgi"
-        android:textColor="#111111"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:alpha="0"
-        android:fontFamily="sans" />
+    android:layout_height="match_parent">
 
 </FrameLayout>
