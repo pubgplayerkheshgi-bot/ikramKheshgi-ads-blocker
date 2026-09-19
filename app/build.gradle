@@ -14,11 +14,35 @@ android {
         versionName '1.0'
     }
 
-    buildTypes {
+    signingConfigs {
         release {
-            // Temporary: use Android's default debug signing
-            // for testing only.
+            def keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+            def keystorePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+            def keyAliasValue = System.getenv("RELEASE_KEY_ALIAS")
+            def keyPasswordValue = System.getenv("RELEASE_KEY_PASSWORD")
+
+            if (keystorePath != null &&
+                keystorePassword != null &&
+                keyAliasValue != null &&
+                keyPasswordValue != null) {
+
+                storeFile file(keystorePath)
+                storePassword keystorePassword
+                keyAlias keyAliasValue
+                keyPassword keyPasswordValue
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
             signingConfig signingConfigs.debug
+        }
+
+        release {
+            if (System.getenv("RELEASE_KEYSTORE_PATH") != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
