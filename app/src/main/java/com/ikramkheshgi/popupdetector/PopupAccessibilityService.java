@@ -1,15 +1,20 @@
 package com.ikramkheshgi.popupdetector;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
-import android.os.SystemClock;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
@@ -17,51 +22,99 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class PopupAccessibilityService extends AccessibilityService {
 
-    private static final long SAME_APP_COOLDOWN = 5000;
+    private static final String PREFS = "popup_detector_prefs";
+    private static final String KEY_DETECTION_COUNT = "detection_count";
+
+    private static final long PACKAGE_COOLDOWN = 5000L;
+
+    private final Map<String, Long> lastDetectionTime =
+            new HashMap<>();
+
+    private final Handler handler =
+            new Handler(Looper.getMainLooper());
 
     private WindowManager windowManager;
     private TextView floatingButton;
 
     private int detectionCount = 0;
 
-    private final Map<String, Long> lastDetectionTime =
-            new HashMap<>();
+    private final String[] AD_INDICATORS = {
+
+            "advertisement",
+            "advertising",
+            "sponsored",
+            "sponsored content",
+            "skip ad",
+            "close ad",
+            "rewarded ad",
+            "reward ad",
+            "ad choices",
+            "ads by",
+            "learn more",
+            "install now",
+            "download now",
+            "open ad"
+    };
 
     @Override
     protected void onServiceConnected() {
+
         super.onServiceConnected();
 
-        loadDetectionCount();
+        AccessibilityServiceInfo info =
+                new AccessibilityServiceInfo();
+
+        info.eventTypes =
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                        | AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                        | AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED;
+
+        info.feedbackType =
+                AccessibilityServiceInfo.FEEDBACK_GENERIC;
+
+        info.flags =
+                AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+                        | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+
+        info.notificationTimeout = 150;
+
+        info.packageNames = null;
+
+        setServiceInfo(info);
+
+        detectionCount =
+                getSharedPreferences(
+                        PREFS,
+                        MODE_PRIVATE
+                ).getInt(
+                        KEY_DETECTION_COUNT,
+                        0
+                );
 
         if (Settings.canDrawOverlays(this)) {
             showFloatingButton();
         }
-
-        updateFloatingButton();
     }
 
     @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {
+    public void onAccessibilityEvent(
+            AccessibilityEvent event
+    ) {
 
         if (event == null) {
-            return;
-        }
-
-        int type = event.getEventType();
-
-        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
-                type != AccessibilityEvent.TYPE_WINDOWS_CHANGED &&
-                type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-
             return;
         }
 
@@ -72,251 +125,275 @@ public class PopupAccessibilityService extends AccessibilityService {
             return;
         }
 
-        String pkg = packageName.toString().trim();
+        String pkg =
+                packageName.toString();
 
-        if (pkg.isEmpty()) {
+        if (pkg.equals(getPackageName())) {
             return;
         }
 
-        // Never monitor our own application.
-        if (getPackageName().equals(pkg)) {
+        if (isSystemApp(pkg)) {
             return;
         }
 
-        // Only third-party applications.
-        if (!isThirdPartyApp(pkg)) {
+        String text =
+                collectEventText(event);
+
+        if (text.length() == 0) {
             return;
         }
 
-        String visibleText = collectText(event);
-
-        /*
-         * A detection requires actual popup/ad-related
-         * evidence from the visible accessibility content.
-         *
-         * Overlay permission alone is NOT treated as an ad.
-         */
-        if (!containsStrongAdIndicator(visibleText)) {
+        if (!containsAdIndicator(text)) {
             return;
         }
 
-        long now = SystemClock.uptimeMillis();
+        long now =
+                System.currentTimeMillis();
 
         Long previous =
                 lastDetectionTime.get(pkg);
 
-        if (previous != null &&
-                now - previous < SAME_APP_COOLDOWN) {
+        if (previous != null
+                && now - previous < PACKAGE_COOLDOWN) {
 
             return;
         }
 
         lastDetectionTime.put(pkg, now);
 
-        recordDetection(pkg);
+        registerDetection(pkg, text);
     }
 
-    private boolean isThirdPartyApp(String pkg) {
+    private String collectEventText(
+            AccessibilityEvent event
+    ) {
 
-        try {
+        StringBuilder builder =
+                new StringBuilder();
 
-            ApplicationInfo appInfo =
-                    getPackageManager()
-                            .getApplicationInfo(pkg, 0);
+        if (event.getText() != null) {
 
-            // Our app is never considered third-party.
-            if (getPackageName().equals(pkg)) {
-                return false;
+            for (CharSequence value :
+                    event.getText()) {
+
+                if (value != null) {
+
+                    builder.append(value)
+                            .append(" ");
+                }
             }
+        }
 
-            // Android/system applications are ignored.
-            return (appInfo.flags &
-                    ApplicationInfo.FLAG_SYSTEM) == 0;
+        AccessibilityNodeInfo source =
+                event.getSource();
 
-        } catch (Exception ignored) {
+        if (source != null) {
 
-            return false;
+            collectNodeText(
+                    source,
+                    builder,
+                    0
+            );
+
+            source.recycle();
+        }
+
+        return builder.toString()
+                .toLowerCase(Locale.US)
+                .trim();
+    }
+
+    private void collectNodeText(
+            AccessibilityNodeInfo node,
+            StringBuilder builder,
+            int depth
+    ) {
+
+        if (node == null || depth > 40) {
+            return;
+        }
+
+        CharSequence text =
+                node.getText();
+
+        if (text != null) {
+
+            builder.append(text)
+                    .append(" ");
+        }
+
+        CharSequence description =
+                node.getContentDescription();
+
+        if (description != null) {
+
+            builder.append(description)
+                    .append(" ");
+        }
+
+        int childCount =
+                node.getChildCount();
+
+        for (int i = 0; i < childCount; i++) {
+
+            AccessibilityNodeInfo child =
+                    node.getChild(i);
+
+            if (child != null) {
+
+                collectNodeText(
+                        child,
+                        builder,
+                        depth + 1
+                );
+
+                child.recycle();
+            }
         }
     }
 
-    private void recordDetection(String pkg) {
+    private boolean containsAdIndicator(
+            String text
+    ) {
 
-        String label = pkg;
+        for (String indicator :
+                AD_INDICATORS) {
+
+            if (text.contains(indicator)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isSystemApp(
+            String packageName
+    ) {
 
         try {
 
-            label = getPackageManager()
-                    .getApplicationLabel(
-                            getPackageManager()
-                                    .getApplicationInfo(pkg, 0)
-                    )
-                    .toString();
+            ApplicationInfo info =
+                    getPackageManager()
+                            .getApplicationInfo(
+                                    packageName,
+                                    0
+                            );
 
-        } catch (Exception ignored) {
+            return (info.flags
+                    & ApplicationInfo.FLAG_SYSTEM) != 0
+                    || (info.flags
+                    & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
+
+        } catch (Exception e) {
+
+            return true;
         }
+    }
+
+    private void registerDetection(
+            String packageName,
+            String detectedText
+    ) {
 
         detectionCount++;
 
-        saveDetectionCount();
-        updateFloatingButton();
-
-        String time =
-                new SimpleDateFormat(
-                        "HH:mm:ss",
-                        Locale.getDefault()
-                ).format(new Date());
-
-        String line =
-                time + "\t" +
-                "SUSPECT" + "\t" +
-                clean(label) + "\t" +
-                clean(pkg);
-
-        String old =
-                getSharedPreferences(
-                        "detector",
-                        MODE_PRIVATE
-                ).getString(
-                        "detections_v2",
-                        ""
-                );
-
-        StringBuilder output =
-                new StringBuilder(line);
-
-        if (old != null && !old.trim().isEmpty()) {
-
-            String[] oldLines =
-                    old.split("\\n");
-
-            int count = 1;
-
-            for (String oldLine : oldLines) {
-
-                if (oldLine.trim().isEmpty()) {
-                    continue;
-                }
-
-                if (count >= 20) {
-                    break;
-                }
-
-                output.append("\n")
-                        .append(oldLine);
-
-                count++;
-            }
-        }
-
         getSharedPreferences(
-                "detector",
+                PREFS,
                 MODE_PRIVATE
-        ).edit()
-                .putString(
-                        "detections_v2",
-                        output.toString()
-                )
-                .apply();
-
-        saveDiagnosticLog(
-                time,
-                label,
-                pkg
-        );
-    }
-
-    private void saveDiagnosticLog(
-            String time,
-            String label,
-            String pkg) {
-
-        String oldLog =
-                getSharedPreferences(
-                        "detector",
-                        MODE_PRIVATE
-                ).getString(
-                        "log",
-                        ""
-                );
-
-        String diagnostic =
-                time +
-                " [SUSPECT] " +
-                clean(label) +
-                " " +
-                clean(pkg);
-
-        StringBuilder output =
-                new StringBuilder(diagnostic);
-
-        if (oldLog != null &&
-                !oldLog.trim().isEmpty()) {
-
-            String[] oldLines =
-                    oldLog.split("\\n");
-
-            int count = 1;
-
-            for (String line : oldLines) {
-
-                if (line.trim().isEmpty()) {
-                    continue;
-                }
-
-                if (count >= 12) {
-                    break;
-                }
-
-                output.append("\n\n")
-                        .append(line);
-
-                count++;
-            }
-        }
-
-        getSharedPreferences(
-                "detector",
-                MODE_PRIVATE
-        ).edit()
-                .putString(
-                        "log",
-                        output.toString()
-                )
-                .apply();
-    }
-
-    private void loadDetectionCount() {
-
-        detectionCount =
-                getSharedPreferences(
-                        "detector",
-                        MODE_PRIVATE
-                ).getInt(
-                        "detection_count",
-                        0
-                );
-    }
-
-    private void saveDetectionCount() {
-
-        getSharedPreferences(
-                "detector",
-                MODE_PRIVATE
-        ).edit()
+        )
+                .edit()
                 .putInt(
-                        "detection_count",
+                        KEY_DETECTION_COUNT,
                         detectionCount
                 )
                 .apply();
+
+        String appName =
+                packageName;
+
+        try {
+
+            ApplicationInfo info =
+                    getPackageManager()
+                            .getApplicationInfo(
+                                    packageName,
+                                    0
+                            );
+
+            appName =
+                    getPackageManager()
+                            .getApplicationLabel(info)
+                            .toString();
+
+        } catch (Exception ignored) {
+        }
+
+        String time =
+                new SimpleDateFormat(
+                        "yyyy-MM-dd HH:mm:ss",
+                        Locale.getDefault()
+                ).format(
+                        new Date()
+                );
+
+        String record =
+                appName
+                        + "\n"
+                        + packageName
+                        + "\n"
+                        + "Detected: "
+                        + time
+                        + "\n"
+                        + "Reason: "
+                        + shorten(
+                                detectedText,
+                                160
+                        );
+
+        getSharedPreferences(
+                PREFS,
+                MODE_PRIVATE
+        )
+                .edit()
+                .putString(
+                        "detection_" + detectionCount,
+                        record
+                )
+                .apply();
+
+        updateFloatingButton();
+
+        Toast.makeText(
+                this,
+                "Possible popup detected: "
+                        + appName,
+                Toast.LENGTH_SHORT
+        ).show();
+    }
+
+    private String shorten(
+            String text,
+            int maxLength
+    ) {
+
+        if (text.length() <= maxLength) {
+            return text;
+        }
+
+        return text.substring(
+                0,
+                maxLength
+        ) + "...";
     }
 
     private void showFloatingButton() {
 
-        if (!Settings.canDrawOverlays(this)) {
+        if (floatingButton != null) {
             return;
         }
 
-        if (floatingButton != null) {
+        if (!Settings.canDrawOverlays(this)) {
             return;
         }
 
@@ -329,55 +406,70 @@ public class PopupAccessibilityService extends AccessibilityService {
         floatingButton =
                 new TextView(this);
 
-        floatingButton.setTextSize(22);
-
-        floatingButton.setGravity(
-                Gravity.CENTER
+        floatingButton.setText(
+                detectionCount > 0
+                        ? "● " + detectionCount
+                        : "●"
         );
 
-        floatingButton.setTextColor(
-                Color.WHITE
+        floatingButton.setTextColor(Color.WHITE);
+        floatingButton.setTextSize(16);
+        floatingButton.setGravity(Gravity.CENTER);
+        floatingButton.setPadding(
+                18,
+                12,
+                18,
+                12
         );
 
-        int size = dp(58);
+        GradientDrawable background =
+                new GradientDrawable();
+
+        background.setColor(
+                Color.rgb(
+                        210,
+                        25,
+                        35
+                )
+        );
+
+        background.setCornerRadius(80);
+
+        floatingButton.setBackground(background);
+
+        floatingButton.setOnClickListener(
+                v -> openMainActivity()
+        );
+
+        int windowType;
+
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.O) {
+
+            windowType =
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+
+        } else {
+
+            windowType =
+                    WindowManager.LayoutParams.TYPE_PHONE;
+        }
 
         WindowManager.LayoutParams params =
                 new WindowManager.LayoutParams(
-                        size,
-                        size,
-                        Build.VERSION.SDK_INT >= 26
-                                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                                : WindowManager.LayoutParams.TYPE_PHONE,
+                        WindowManager.LayoutParams.WRAP_CONTENT,
+                        WindowManager.LayoutParams.WRAP_CONTENT,
+                        windowType,
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                         PixelFormat.TRANSLUCENT
                 );
 
         params.gravity =
-                Gravity.TOP | Gravity.END;
+                Gravity.CENTER_VERTICAL
+                        | Gravity.RIGHT;
 
-        params.x = dp(12);
-        params.y = dp(180);
-
-        floatingButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            PopupAccessibilityService.this,
-                            MainActivity.class
-                    );
-
-            intent.addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK |
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            );
-
-            startActivity(intent);
-
-            detectionCount = 0;
-
-            saveDetectionCount();
-            updateFloatingButton();
-        });
+        params.x = 20;
+        params.y = 0;
 
         try {
 
@@ -386,58 +478,66 @@ public class PopupAccessibilityService extends AccessibilityService {
                     params
             );
 
-            updateFloatingButton();
+        } catch (Exception e) {
 
-        } catch (Exception ignored) {
+            floatingButton = null;
         }
     }
 
     private void updateFloatingButton() {
 
         if (floatingButton == null) {
+
+            if (Settings.canDrawOverlays(this)) {
+                showFloatingButton();
+            }
+
             return;
         }
 
-        GradientDrawable background =
-                new GradientDrawable();
+        handler.post(() -> {
 
-        background.setShape(
-                GradientDrawable.OVAL
+            if (floatingButton != null) {
+
+                floatingButton.setText(
+                        "● " + detectionCount
+                );
+            }
+        });
+    }
+
+    private void openMainActivity() {
+
+        Intent intent =
+                new Intent(
+                        this,
+                        MainActivity.class
+                );
+
+        intent.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK
         );
 
-        if (detectionCount <= 0) {
+        startActivity(intent);
+    }
 
-            floatingButton.setText("🔘");
+    @Override
+    public void onInterrupt() {
+        // Monitoring interrupted by Android.
+    }
 
-            background.setColor(
-                    Color.rgb(25, 110, 220)
-            );
+    @Override
+    public void onDestroy() {
 
-        } else {
+        removeFloatingButton();
 
-            floatingButton.setText(
-                    "🔴" + detectionCount
-            );
-
-            background.setColor(
-                    Color.rgb(190, 25, 35)
-            );
-        }
-
-        background.setStroke(
-                2,
-                Color.WHITE
-        );
-
-        floatingButton.setBackground(
-                background
-        );
+        super.onDestroy();
     }
 
     private void removeFloatingButton() {
 
-        if (floatingButton != null &&
-                windowManager != null) {
+        if (floatingButton != null
+                && windowManager != null) {
 
             try {
 
@@ -450,172 +550,5 @@ public class PopupAccessibilityService extends AccessibilityService {
 
             floatingButton = null;
         }
-    }
-
-    private String collectText(
-            AccessibilityEvent event) {
-
-        StringBuilder text =
-                new StringBuilder();
-
-        CharSequence description =
-                event.getContentDescription();
-
-        if (description != null) {
-
-            text.append(description)
-                    .append(' ');
-        }
-
-        for (CharSequence item :
-                event.getText()) {
-
-            if (item != null) {
-
-                text.append(item)
-                        .append(' ');
-            }
-        }
-
-        AccessibilityNodeInfo source =
-                event.getSource();
-
-        if (source != null) {
-
-            collectNodeText(
-                    source,
-                    text
-            );
-
-            source.recycle();
-        }
-
-        return text.toString()
-                .toLowerCase(Locale.ROOT);
-    }
-
-    private void collectNodeText(
-            AccessibilityNodeInfo node,
-            StringBuilder output) {
-
-        if (node == null) {
-            return;
-        }
-
-        CharSequence text =
-                node.getText();
-
-        if (text != null) {
-
-            output.append(text)
-                    .append(' ');
-        }
-
-        CharSequence description =
-                node.getContentDescription();
-
-        if (description != null) {
-
-            output.append(description)
-                    .append(' ');
-        }
-
-        int childCount =
-                node.getChildCount();
-
-        /*
-         * Limit traversal so a very large screen
-         * cannot create excessive work.
-         */
-        int maxChildren =
-                Math.min(childCount, 40);
-
-        for (int i = 0; i < maxChildren; i++) {
-
-            AccessibilityNodeInfo child =
-                    node.getChild(i);
-
-            if (child != null) {
-
-                collectNodeText(
-                        child,
-                        output
-                );
-
-                child.recycle();
-            }
-        }
-    }
-
-    private boolean containsStrongAdIndicator(
-            String text) {
-
-        if (text == null ||
-                text.trim().isEmpty()) {
-
-            return false;
-        }
-
-        String[] strongIndicators = {
-
-                "advertisement",
-                "advertising",
-                "sponsored",
-                "sponsored content",
-                "skip ad",
-                "close ad",
-                "rewarded ad",
-                "reward ad",
-                "ad choices",
-                "ads by",
-                "learn more",
-                "install now",
-                "download now",
-                "open ad"
-        };
-
-        for (String word :
-                strongIndicators) {
-
-            if (text.contains(word)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private String clean(String value) {
-
-        if (value == null) {
-            return "";
-        }
-
-        return value
-                .replace("\t", " ")
-                .replace("\n", " ")
-                .replace("\r", " ");
-    }
-
-    private int dp(int value) {
-
-        return Math.round(
-                value *
-                        getResources()
-                                .getDisplayMetrics()
-                                .density
-        );
-    }
-
-    @Override
-    public void onInterrupt() {
-    }
-
-    @Override
-    public void onDestroy() {
-
-        removeFloatingButton();
-
-        super.onDestroy();
     }
 }
