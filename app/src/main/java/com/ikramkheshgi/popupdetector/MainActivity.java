@@ -29,23 +29,9 @@ public class MainActivity extends Activity {
         status = findViewById(R.id.serviceStatus);
         detectionsContainer = findViewById(R.id.detectionsContainer);
 
-        findViewById(R.id.enableDetector).setOnClickListener(v -> {
-
-            try {
-                Intent intent =
-                        new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-
-                startActivity(intent);
-
-            } catch (Exception e) {
-
-                Toast.makeText(
-                        this,
-                        "Unable to open Accessibility Settings.",
-                        Toast.LENGTH_LONG
-                ).show();
-            }
-        });
+        findViewById(R.id.enableDetector).setOnClickListener(v ->
+                showAccessibilityDisclosure()
+        );
 
         findViewById(R.id.scanApps).setOnClickListener(v ->
                 scanApps()
@@ -83,6 +69,159 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) {
             }
         }
+    }
+
+    private void showAccessibilityDisclosure() {
+
+        LinearLayout layout = new LinearLayout(this);
+
+        layout.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        int padding = dp(22);
+
+        layout.setPadding(
+                padding,
+                padding,
+                padding,
+                padding
+        );
+
+        TextView title = new TextView(this);
+
+        title.setText(
+                "Accessibility Access"
+        );
+
+        title.setTextSize(21);
+
+        title.setTextColor(
+                Color.rgb(20, 30, 40)
+        );
+
+        title.setTypeface(
+                null,
+                android.graphics.Typeface.BOLD
+        );
+
+        layout.addView(title);
+
+        TextView message = new TextView(this);
+
+        message.setText(
+                "ikramKheshgi Popup Detector uses Android Accessibility "
+                + "Service to monitor visible app windows and on-screen "
+                + "text so it can identify possible advertisements or "
+                + "pop-ups from third-party apps.\n\n"
+
+                + "The service is used only for this detection feature. "
+                + "The app does not automatically install, uninstall, "
+                + "or control other applications.\n\n"
+
+                + "Accessibility access is required for background "
+                + "monitoring. You must enable it yourself in Android "
+                + "Settings. You can disable it at any time."
+        );
+
+        message.setTextSize(15);
+
+        message.setTextColor(
+                Color.rgb(50, 60, 70)
+        );
+
+        LinearLayout.LayoutParams messageParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+
+        messageParams.topMargin = dp(16);
+
+        layout.addView(
+                message,
+                messageParams
+        );
+
+        CheckBox consent = new CheckBox(this);
+
+        consent.setText(
+                "I understand and agree to enable Accessibility "
+                + "access for popup detection."
+        );
+
+        consent.setTextSize(14);
+
+        LinearLayout.LayoutParams consentParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+
+        consentParams.topMargin = dp(18);
+
+        layout.addView(
+                consent,
+                consentParams
+        );
+
+        AlertDialogBuilderCompat builder =
+                new AlertDialogBuilderCompat(this);
+
+        builder.setView(layout);
+
+        builder.setNegativeButton(
+                "CANCEL",
+                null
+        );
+
+        builder.setPositiveButton(
+                "CONTINUE",
+                null
+        );
+
+        android.app.AlertDialog dialog =
+                builder.create();
+
+        dialog.setOnShowListener(d -> {
+
+            Button continueButton =
+                    dialog.getButton(
+                            android.app.AlertDialog.BUTTON_POSITIVE
+                    );
+
+            continueButton.setEnabled(false);
+
+            consent.setOnCheckedChangeListener(
+                    (buttonView, isChecked) ->
+                            continueButton.setEnabled(isChecked)
+            );
+
+            continueButton.setOnClickListener(v -> {
+
+                dialog.dismiss();
+
+                try {
+
+                    Intent intent =
+                            new Intent(
+                                    Settings.ACTION_ACCESSIBILITY_SETTINGS
+                            );
+
+                    startActivity(intent);
+
+                } catch (Exception e) {
+
+                    Toast.makeText(
+                            this,
+                            "Unable to open Accessibility Settings.",
+                            Toast.LENGTH_LONG
+                    ).show();
+                }
+            });
+        });
+
+        dialog.show();
     }
 
     boolean isAccessibilityEnabled() {
@@ -138,42 +277,62 @@ public class MainActivity extends Activity {
         String data = getSharedPreferences(
                 "detector",
                 MODE_PRIVATE
-        ).getString("detections_v2", "");
+        ).getString(
+                "detections_v2",
+                ""
+        );
 
-        if (data == null || data.trim().isEmpty()) {
+        if (data == null ||
+                data.trim().isEmpty()) {
 
             TextView empty = new TextView(this);
 
             empty.setText(
-                    "No possible ad/pop-up detections yet.\n\n" +
-                    "Enable the detector and use your phone normally."
+                    "No possible ad/pop-up detections yet.\n\n"
+                    + "Enable the detector and use your phone normally."
             );
 
             empty.setTextColor(Color.WHITE);
             empty.setTextSize(15);
-            empty.setPadding(16, 16, 16, 16);
+            empty.setPadding(
+                    16,
+                    16,
+                    16,
+                    16
+            );
 
             detectionsContainer.addView(empty);
 
             return;
         }
 
-        String[] lines = data.split("\\n");
+        String[] lines =
+                data.split("\\n");
 
         for (String line : lines) {
 
-            String[] parts = line.split("\\t");
+            String[] parts =
+                    line.split("\\t");
 
             if (parts.length < 4) {
                 continue;
             }
 
-            String time = parts[0];
-            String type = parts[1];
-            String appName = parts[2];
-            String packageName = parts[3];
+            String time =
+                    parts[0];
 
-            if (packageName.equals(getPackageName())) {
+            String type =
+                    parts[1];
+
+            String appName =
+                    parts[2];
+
+            String packageName =
+                    parts[3];
+
+            if (packageName.equals(
+                    getPackageName()
+            )) {
                 continue;
             }
 
@@ -194,7 +353,9 @@ public class MainActivity extends Activity {
     ) {
 
         if (packageName == null ||
-                packageName.equals(getPackageName())) {
+                packageName.equals(
+                        getPackageName()
+                )) {
 
             return;
         }
@@ -203,10 +364,20 @@ public class MainActivity extends Activity {
             return;
         }
 
-        LinearLayout card = new LinearLayout(this);
+        LinearLayout card =
+                new LinearLayout(this);
 
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(16, 16, 16, 16);
+        card.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        card.setPadding(
+                16,
+                16,
+                16,
+                16
+        );
+
         card.setBackgroundColor(
                 Color.rgb(14, 28, 46)
         );
@@ -217,18 +388,33 @@ public class MainActivity extends Activity {
                         LinearLayout.LayoutParams.WRAP_CONTENT
                 );
 
-        cardParams.setMargins(0, 0, 0, 12);
+        cardParams.setMargins(
+                0,
+                0,
+                0,
+                12
+        );
 
-        card.setLayoutParams(cardParams);
+        card.setLayoutParams(
+                cardParams
+        );
 
-        LinearLayout top = new LinearLayout(this);
+        LinearLayout top =
+                new LinearLayout(this);
 
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
 
-        ImageView icon = new ImageView(this);
+        top.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
 
-        int iconSize = dp(58);
+        ImageView icon =
+                new ImageView(this);
+
+        int iconSize =
+                dp(58);
 
         top.addView(
                 icon,
@@ -238,7 +424,8 @@ public class MainActivity extends Activity {
                 )
         );
 
-        LinearLayout information = new LinearLayout(this);
+        LinearLayout information =
+                new LinearLayout(this);
 
         information.setOrientation(
                 LinearLayout.VERTICAL
@@ -251,14 +438,20 @@ public class MainActivity extends Activity {
                         1
                 );
 
-        infoParams.setMargins(14, 0, 0, 0);
+        infoParams.setMargins(
+                14,
+                0,
+                0,
+                0
+        );
 
         top.addView(
                 information,
                 infoParams
         );
 
-        TextView title = new TextView(this);
+        TextView title =
+                new TextView(this);
 
         title.setText(
                 "🚨 Possible Ad/Popup"
@@ -269,17 +462,27 @@ public class MainActivity extends Activity {
         );
 
         title.setTextSize(17);
+
         title.setTypeface(
                 null,
                 android.graphics.Typeface.BOLD
         );
 
-        information.addView(title);
+        information.addView(
+                title
+        );
 
-        TextView name = new TextView(this);
+        TextView name =
+                new TextView(this);
 
-        name.setText(appName);
-        name.setTextColor(Color.WHITE);
+        name.setText(
+                appName
+        );
+
+        name.setTextColor(
+                Color.WHITE
+        );
+
         name.setTextSize(18);
 
         name.setTypeface(
@@ -287,22 +490,33 @@ public class MainActivity extends Activity {
                 android.graphics.Typeface.BOLD
         );
 
-        information.addView(name);
+        information.addView(
+                name
+        );
 
-        TextView timeView = new TextView(this);
+        TextView timeView =
+                new TextView(this);
 
         timeView.setText(
                 "Detected: " + time
         );
 
-        timeView.setTextColor(Color.LTGRAY);
+        timeView.setTextColor(
+                Color.LTGRAY
+        );
+
         timeView.setTextSize(13);
 
-        information.addView(timeView);
+        information.addView(
+                timeView
+        );
 
-        card.addView(top);
+        card.addView(
+                top
+        );
 
-        TextView pkg = new TextView(this);
+        TextView pkg =
+                new TextView(this);
 
         pkg.setText(
                 "Package: " + packageName
@@ -313,27 +527,44 @@ public class MainActivity extends Activity {
         );
 
         pkg.setTextSize(13);
-        pkg.setPadding(0, 12, 0, 10);
 
-        card.addView(pkg);
-
-        Button uninstall = new Button(this);
-
-        uninstall.setText("UNINSTALL APP");
-
-        uninstall.setOnClickListener(v ->
-                uninstallApp(packageName)
+        pkg.setPadding(
+                0,
+                12,
+                0,
+                10
         );
 
-        card.addView(uninstall);
+        card.addView(
+                pkg
+        );
+
+        Button uninstall =
+                new Button(this);
+
+        uninstall.setText(
+                "UNINSTALL APP"
+        );
+
+        uninstall.setOnClickListener(
+                v -> uninstallApp(packageName)
+        );
+
+        card.addView(
+                uninstall
+        );
 
         try {
 
             Drawable drawable =
                     getPackageManager()
-                            .getApplicationIcon(packageName);
+                            .getApplicationIcon(
+                                    packageName
+                            );
 
-            icon.setImageDrawable(drawable);
+            icon.setImageDrawable(
+                    drawable
+            );
 
         } catch (Exception e) {
 
@@ -342,14 +573,20 @@ public class MainActivity extends Activity {
             );
         }
 
-        detectionsContainer.addView(card);
+        detectionsContainer.addView(
+                card
+        );
     }
 
-    void uninstallApp(String packageName) {
+    void uninstallApp(
+            String packageName
+    ) {
 
         if (packageName == null ||
                 packageName.trim().isEmpty() ||
-                packageName.equals(getPackageName())) {
+                packageName.equals(
+                        getPackageName()
+                )) {
 
             return;
         }
@@ -370,7 +607,9 @@ public class MainActivity extends Activity {
             Intent intent =
                     new Intent(
                             Intent.ACTION_DELETE,
-                            Uri.parse("package:" + packageName)
+                            Uri.parse(
+                                    "package:" + packageName
+                            )
                     );
 
             startActivity(intent);
@@ -385,7 +624,9 @@ public class MainActivity extends Activity {
         }
     }
 
-    boolean isSystemApp(String packageName) {
+    boolean isSystemApp(
+            String packageName
+    ) {
 
         try {
 
@@ -396,8 +637,10 @@ public class MainActivity extends Activity {
                                     0
                             );
 
-            return (info.flags &
-                    ApplicationInfo.FLAG_SYSTEM) != 0;
+            return (
+                    info.flags &
+                    ApplicationInfo.FLAG_SYSTEM
+            ) != 0;
 
         } catch (Exception e) {
 
@@ -418,12 +661,12 @@ public class MainActivity extends Activity {
                         PackageManager.GET_META_DATA
                 )) {
 
-            // Never show this detector itself.
-            if (a.packageName.equals(getPackageName())) {
+            if (a.packageName.equals(
+                    getPackageName()
+            )) {
                 continue;
             }
 
-            // Ignore Android/system applications.
             if ((a.flags &
                     ApplicationInfo.FLAG_SYSTEM) != 0) {
 
@@ -447,7 +690,8 @@ public class MainActivity extends Activity {
                                 .equals(perm)) {
 
                             found.add(
-                                    a.loadLabel(pm).toString()
+                                    a.loadLabel(pm)
+                                            .toString()
                                             + "\n"
                                             + a.packageName
                             );
@@ -465,21 +709,35 @@ public class MainActivity extends Activity {
 
         if (found.isEmpty()) {
 
-            TextView empty = new TextView(this);
+            TextView empty =
+                    new TextView(this);
 
             empty.setText(
-                    "No third-party apps with overlay permission capability were found."
+                    "No third-party apps with overlay "
+                    + "permission capability were found."
             );
 
-            empty.setTextColor(Color.WHITE);
-            empty.setTextSize(15);
-            empty.setPadding(16, 16, 16, 16);
+            empty.setTextColor(
+                    Color.WHITE
+            );
 
-            detectionsContainer.addView(empty);
+            empty.setTextSize(15);
+
+            empty.setPadding(
+                    16,
+                    16,
+                    16,
+                    16
+            );
+
+            detectionsContainer.addView(
+                    empty
+            );
 
         } else {
 
-            for (String item : found) {
+            for (String item :
+                    found) {
 
                 String[] parts =
                         item.split("\\n");
@@ -505,5 +763,58 @@ public class MainActivity extends Activity {
                                 .getDisplayMetrics()
                                 .density
         );
+    }
+
+    /*
+     * Small helper so the project does not require
+     * AndroidX AppCompat.
+     */
+    static class AlertDialogBuilderCompat {
+
+        private final android.app.AlertDialog.Builder builder;
+
+        AlertDialogBuilderCompat(
+                Activity activity
+        ) {
+
+            builder =
+                    new android.app.AlertDialog.Builder(
+                            activity
+                    );
+        }
+
+        void setView(
+                android.view.View view
+        ) {
+
+            builder.setView(view);
+        }
+
+        void setNegativeButton(
+                String text,
+                android.content.DialogInterface.OnClickListener listener
+        ) {
+
+            builder.setNegativeButton(
+                    text,
+                    listener
+            );
+        }
+
+        void setPositiveButton(
+                String text,
+                android.content.DialogInterface.OnClickListener listener
+        ) {
+
+            builder.setPositiveButton(
+                    text,
+                    listener
+            );
+        }
+
+        android.app.AlertDialog create() {
+
+            return builder.create();
+        }
     }
 }
