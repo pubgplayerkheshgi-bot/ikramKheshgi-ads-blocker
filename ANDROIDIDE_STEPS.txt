@@ -1,0 +1,29 @@
+IKRAMKHESHKI POPUP AD DETECTOR — BUILD ON YOUR ANDROID PHONE
+
+Recommended builder: AndroidIDE.
+
+1. Install AndroidIDE on your Android phone.
+2. Download this ZIP and extract it to a normal folder such as Download/IkramKheshgi.
+3. Open AndroidIDE.
+4. Choose Open/Import an existing Gradle project.
+5. Select the extracted IkramKheshgi_PopupAdDetector folder.
+6. Allow AndroidIDE to install/configure the required JDK and Android SDK/build tools when prompted.
+7. Wait for Gradle sync to finish.
+8. Tap the Run/Build button.
+9. Choose the debug APK option if AndroidIDE asks.
+10. Install the generated APK.
+11. Open "ikramKheshgi Popup Detector".
+12. Tap "ENABLE POPUP DETECTOR".
+13. Android Settings > Accessibility > Installed services > ikramKheshgi Popup Detector > turn it ON.
+14. Return to the app and use your phone normally.
+15. Open Recent detections to see suspected app/window events.
+
+IMPORTANT:
+- The detector is best-effort. Android does not expose every advertising event to third-party apps.
+- Accessibility access is powerful. This app is designed to process detection events locally and does not require internet access.
+- Do not enable Accessibility access for apps you do not trust.
+
+If AndroidIDE cannot sync:
+- Make sure the phone has several GB of free storage.
+- Keep the phone connected to Wi-Fi during the first Gradle/SDK setup.
+- Restart AndroidIDE and try the Gradle sync again.

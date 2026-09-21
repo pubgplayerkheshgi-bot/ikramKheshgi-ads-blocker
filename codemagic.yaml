@@ -1,0 +1,15 @@
+workflows:
+  android-apk:
+    name: Build ikramKheshgi APK
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      android_signing:
+        - ikramkheshgi_release
+    scripts:
+      - name: Build APK
+        script: |
+          ./gradlew assembleRelease
+
+    artifacts:
+      - app/build/outputs/apk/release/*.apk

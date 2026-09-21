@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ikramKheshgi Popup Detector</string>
+    <string name="creator">Created by ikramKheshgi</string>
+    <string name="accessibility_description">Detect possible external popup advertisements by monitoring app-window changes, popup-like windows and visible ad text. Normal page content changes are not treated as detections.</string>
+</resources>
