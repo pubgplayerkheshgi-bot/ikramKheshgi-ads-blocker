@@ -111,7 +111,6 @@ public class PopupAccessibilityService extends AccessibilityService {
                 }
                 if(underlying.equals(wPkg)) hasUnderlying=true;
                 if(r!=null) r.recycle();
-                w.recycle();
             }
         }catch(Exception ignored){}
         // Stronger signal: app can draw overlays + its visible window is small while previous app remains.
@@ -156,12 +155,8 @@ public class PopupAccessibilityService extends AccessibilityService {
     private void showFloating(){
         if(floating!=null || !Settings.canDrawOverlays(this))return;
         try{
-            if(Build.VERSION.SDK_INT>=30){
-                Display d=getDisplay();
-                windowContext=createDisplayContext(d).createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,null);
-                wm=(WindowManager)windowContext.getSystemService(Context.WINDOW_SERVICE);
-            }else{wm=(WindowManager)getSystemService(WINDOW_SERVICE);}
-            floating=new TextView(windowContext==null?this:windowContext);
+            wm=(WindowManager)getSystemService(WINDOW_SERVICE);
+            floating=new TextView(this);
             floating.setText("✓"); floating.setTextColor(Color.WHITE); floating.setTextSize(16); floating.setGravity(Gravity.CENTER);
             floating.setPadding(18,12,18,12); floating.setContentDescription("Popup detector");
             setBubble(false);
