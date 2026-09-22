@@ -1,5 +1,11 @@
 plugins { id 'com.android.application' }
 
+def signingProps = new Properties()
+def signingFile = file(System.getProperty("user.home") + "/.ikramkheshgi-signing.properties")
+if (signingFile.exists()) {
+    signingFile.withInputStream { signingProps.load(it) }
+}
+
 android {
     namespace 'com.ikramkheshgi.popupdetector'
     compileSdk 35
@@ -10,8 +16,21 @@ android {
         versionCode 4
         versionName '2.1'
     }
+    signingConfigs {
+        release {
+            if (signingFile.exists()) {
+                storeFile file(signingProps["storeFile"])
+                storePassword signingProps["storePassword"]
+                keyAlias signingProps["keyAlias"]
+                keyPassword signingProps["keyPassword"]
+            }
+        }
+    }
+
     buildTypes {
         debug { signingConfig signingConfigs.debug }
-        release { }
+        release {
+            signingConfig signingConfigs.release
+        }
     }
 }
