@@ -4,51 +4,53 @@ import android.content.Context;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.List;
-
 final class DetectionStore {
-    static final String PREFS = "popup_detector_v2";
-    static final String HISTORY = "history";
-    static final int MAX_ITEMS = 30;
+    private static final String PREFS = "popup_detector_21";
+    private static final String HISTORY = "history";
+    private static final String WHITELIST = "whitelist";
+    private static final int MAX_ITEMS = 50;
 
     private DetectionStore() {}
 
-    static synchronized void add(Context context, String pkg, String label,
-                                  String reason, long time) {
+    static synchronized void add(Context c, String pkg, String label, String reason, long time) {
+        if (isWhitelisted(c, pkg)) return;
+        JSONArray old = read(c), next = new JSONArray();
         try {
-            JSONArray old = read(context);
-            JSONArray next = new JSONArray();
             JSONObject item = new JSONObject();
             item.put("package", pkg);
             item.put("label", label);
-            item.put("reason", reason == null ? "Popup-like window detected" : reason);
+            item.put("reason", reason);
             item.put("time", time);
             next.put(item);
             for (int i = 0; i < old.length() && next.length() < MAX_ITEMS; i++) {
-                next.put(old.getJSONObject(i));
+                JSONObject o = old.optJSONObject(i);
+                if (o != null) next.put(o);
             }
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .edit().putString(HISTORY, next.toString()).apply();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) { return; }
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(HISTORY, next.toString()).apply();
     }
 
-    static JSONArray read(Context context) {
-        try {
-            return new JSONArray(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .getString(HISTORY, "[]"));
-        } catch (Exception e) {
-            return new JSONArray();
-        }
+    static JSONArray read(Context c) {
+        try { return new JSONArray(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(HISTORY, "[]")); }
+        catch (Exception e) { return new JSONArray(); }
     }
 
-    static JSONObject latest(Context context) {
-        JSONArray a = read(context);
-        return a.length() == 0 ? null : a.optJSONObject(0);
+    static JSONObject latest(Context c) { JSONArray a = read(c); return a.length() == 0 ? null : a.optJSONObject(0); }
+
+    static void clear(Context c) { c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(HISTORY).apply(); }
+
+    static boolean isWhitelisted(Context c, String pkg) {
+        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(WHITELIST, java.util.Collections.emptySet()).contains(pkg);
     }
 
-    static void clear(Context context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .remove(HISTORY).apply();
+    static void setWhitelisted(Context c, String pkg, boolean value) {
+        android.content.SharedPreferences p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        java.util.Set<String> s = new java.util.HashSet<>(p.getStringSet(WHITELIST, java.util.Collections.emptySet()));
+        if (value) s.add(pkg); else s.remove(pkg);
+        p.edit().putStringSet(WHITELIST, s).apply();
+    }
+
+    static java.util.Set<String> whitelist(Context c) {
+        return new java.util.HashSet<>(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(WHITELIST, java.util.Collections.emptySet()));
     }
 }

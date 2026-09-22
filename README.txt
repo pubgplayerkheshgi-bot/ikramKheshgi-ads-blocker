@@ -1,21 +1,15 @@
-ikramKheshgi Popup Detector v2.0
+ikramKheshgi Popup Detector v2.1
 
-This build is a functional popup-source detector modeled around the same user flow as the reference Popup Ad Detector: Accessibility monitoring + floating detector + identified source app + App Info + Android uninstall action.
+This is an independent implementation inspired by the user-visible workflow of popup detector apps.
 
-IMPORTANT
-- This app detects possible popup sources using Android Accessibility signals. It cannot guarantee that an identified app is malicious.
-- Normal window content changes are NOT logged as detections.
-- A detection is based on ad-like visible text, ad-like notification text, or a stronger popup-style window signal from an app capable of drawing overlays.
-- Android always controls the final uninstall confirmation.
+Functions:
+- Accessibility-based external popup detection.
+- Floating detector indicator when overlay permission is granted.
+- Possible source app name, package, icon, reason and time.
+- App Info and Android uninstall actions.
+- Detection history and whitelist.
+- Overlay-capability scan.
+- Notification ad-text signal.
 
-SETUP
-1. Install the APK.
-2. Open the app.
-3. Enable Accessibility for "ikramKheshgi Popup Detector".
-4. Allow "Display over other apps" so the floating detector can appear.
-5. Use the phone normally.
-6. When a possible external popup is detected, the floating ! button becomes active.
-7. Tap it to see the app name, package, reason and time, then use APP INFO or UNINSTALL APP.
-
-BUILD
-GitHub Actions is configured to build debug and release APKs.
+Important: Detection is heuristic. The app does not claim that every flagged app is malicious.
+Do not disable device security permanently. For development, use a properly signed build and normal Android installation methods.

@@ -2,9 +2,7 @@ package com.ikramkheshgi.popupdetector;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.AppOpsManager;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -17,7 +15,6 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,168 +22,43 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 import java.text.DateFormat;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 public class MainActivity extends Activity {
-    private LinearLayout historyContainer;
-    private TextView statusText;
-    private TextView countText;
-
-    private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + 0.5f); }
-
-    @Override protected void onCreate(Bundle state) {
-        super.onCreate(state);
-        setContentView(R.layout.activity_main);
-        statusText = findViewById(R.id.serviceStatus);
-        countText = findViewById(R.id.detectionCount);
-        historyContainer = findViewById(R.id.historyContainer);
-
-        findViewById(R.id.enableDetector).setOnClickListener(v -> showAccessibilityDisclosure());
-        findViewById(R.id.allowOverlay).setOnClickListener(v -> openOverlaySettings());
-        findViewById(R.id.scanApps).setOnClickListener(v -> showOverlayApps());
-        findViewById(R.id.clearHistory).setOnClickListener(v -> {
-            DetectionStore.clear(this);
-            renderHistory();
-        });
-        findViewById(R.id.openLatest).setOnClickListener(v -> {
-            JSONObject latest = DetectionStore.latest(this);
-            if (latest != null) openDetails(latest);
-        });
+    private LinearLayout records; private TextView status, count;
+    private int dp(int v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
+    private TextView txt(String s,float z,int c){TextView t=new TextView(this);t.setText(s);t.setTextSize(z);t.setTextColor(c);return t;}
+    @Override protected void onCreate(Bundle b){super.onCreate(b); build();}
+    @Override protected void onResume(){super.onResume();refresh();}
+    private void build(){
+        ScrollView sv=new ScrollView(this); LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(18),dp(12),dp(18),dp(24));root.setBackgroundColor(Color.rgb(7,17,31));sv.addView(root);
+        ImageView logo=new ImageView(this);logo.setImageResource(com.ikramkheshgi.popupdetector.R.drawable.ikramkheshgi_intro);logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);root.addView(logo,new LinearLayout.LayoutParams(-1,dp(145)));
+        TextView title=txt("ikramKheshgi Popup Detector",25,Color.WHITE);title.setGravity(Gravity.CENTER);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);root.addView(title);
+        TextView sub=txt("POPUP AD DETECTOR",13,Color.rgb(25,184,255));sub.setGravity(Gravity.CENTER);sub.setTypeface(Typeface.DEFAULT,Typeface.BOLD);root.addView(sub);
+        TextView desc=txt("Identify the app behind an external popup, review the evidence, then open App Info or Android's uninstall screen.",14,Color.rgb(215,230,242));desc.setGravity(Gravity.CENTER);desc.setPadding(dp(10),dp(12),dp(10),dp(10));root.addView(desc);
+        status=txt("DETECTOR OFF",14,Color.rgb(25,184,255));status.setGravity(Gravity.CENTER);status.setTypeface(Typeface.DEFAULT,Typeface.BOLD);root.addView(status,new LinearLayout.LayoutParams(-1,dp(54)));
+        Button start=button("START DETECTOR");start.setOnClickListener(v->showDisclosure());root.addView(start);
+        Button overlay=button("ALLOW FLOATING DETECTOR");overlay.setOnClickListener(v->openOverlay());root.addView(overlay);
+        LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);
+        Button scan=button("SCAN");scan.setOnClickListener(v->startActivity(new Intent(this,ScanActivity.class)));row.addView(scan,new LinearLayout.LayoutParams(0,-2,1));
+        Button wl=button("WHITELIST");wl.setOnClickListener(v->startActivity(new Intent(this,WhitelistActivity.class)));row.addView(wl,new LinearLayout.LayoutParams(0,-2,1));root.addView(row);
+        count=txt("0 records",18,Color.WHITE);count.setGravity(Gravity.CENTER);count.setTypeface(Typeface.DEFAULT,Typeface.BOLD);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,dp(22),0,dp(8));root.addView(count,cp);
+        Button latest=button("OPEN LATEST RECORD");latest.setOnClickListener(v->{JSONObject o=DetectionStore.latest(this);if(o!=null)open(o);});root.addView(latest);
+        TextView h=txt("RECENT RECORDS",20,Color.WHITE);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);h.setPadding(0,dp(22),0,dp(6));root.addView(h);
+        records=new LinearLayout(this);records.setOrientation(LinearLayout.VERTICAL);root.addView(records);
+        Button clear=button("CLEAR RECORDS");clear.setOnClickListener(v->{DetectionStore.clear(this);refresh();});root.addView(clear);
+        TextView foot=txt("Normal page changes are ignored. Detection is heuristic; review the identified app before uninstalling it.",12,Color.rgb(150,180,205));foot.setGravity(Gravity.CENTER);foot.setPadding(0,dp(16),0,0);root.addView(foot);
+        setContentView(sv);
     }
-
-    @Override protected void onResume() {
-        super.onResume();
-        refresh();
-    }
-
-    private void refresh() {
-        boolean accessibility = isAccessibilityServiceEnabled();
-        boolean overlay = Settings.canDrawOverlays(this);
-        if (accessibility && overlay) statusText.setText("● DETECTOR ACTIVE — ready to identify popup sources");
-        else if (accessibility) statusText.setText("● ACCESSIBILITY ACTIVE — allow floating detector for best results");
-        else statusText.setText("○ DETECTOR OFF — enable Accessibility to start");
-        JSONArray a = DetectionStore.read(this);
-        countText.setText(a.length() + " popup event" + (a.length() == 1 ? "" : "s") + " identified");
-        renderHistory();
-    }
-
-    private void renderHistory() {
-        historyContainer.removeAllViews();
-        JSONArray a = DetectionStore.read(this);
-        if (a.length() == 0) {
-            TextView empty = label("No popup source identified yet.\nUse your phone normally after enabling the detector.", 15, Color.rgb(170,190,210));
-            empty.setPadding(dp(14), dp(18), dp(14), dp(18));
-            historyContainer.addView(empty);
-            return;
-        }
-        for (int i = 0; i < a.length(); i++) {
-            JSONObject o = a.optJSONObject(i);
-            if (o == null) continue;
-            historyContainer.addView(historyCard(o));
-        }
-    }
-
-    private View historyCard(JSONObject o) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.HORIZONTAL);
-        card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setPadding(dp(12), dp(12), dp(10), dp(12));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(Color.rgb(16,30,48));
-        bg.setCornerRadius(dp(16));
-        card.setBackground(bg);
-        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
-        cp.setMargins(0,0,0,dp(10));
-        card.setLayoutParams(cp);
-
-        ImageView icon = new ImageView(this);
-        icon.setImageDrawable(loadIcon(o.optString("package")));
-        card.addView(icon, new LinearLayout.LayoutParams(dp(52),dp(52)));
-
-        LinearLayout textBox = new LinearLayout(this);
-        textBox.setOrientation(LinearLayout.VERTICAL);
-        textBox.setPadding(dp(12),0,dp(6),0);
-        TextView name = label(o.optString("label", "Unknown app"),16,Color.WHITE);
-        name.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-        TextView reason = label(o.optString("reason", "Popup-like window"),12,Color.rgb(170,190,210));
-        TextView time = label(DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(new Date(o.optLong("time",0))),11,Color.rgb(120,160,190));
-        textBox.addView(name); textBox.addView(reason); textBox.addView(time);
-        card.addView(textBox,new LinearLayout.LayoutParams(0,-2,1));
-        TextView arrow=label("›",30,Color.rgb(25,184,255));
-        card.addView(arrow,new LinearLayout.LayoutParams(dp(30),dp(50)));
-        card.setOnClickListener(v -> openDetails(o));
-        return card;
-    }
-
-    private DrawableHolder loadIcon(String pkg) {
-        try { return new DrawableHolder(getPackageManager().getApplicationIcon(pkg)); }
-        catch(Exception e) { return new DrawableHolder(getDrawable(android.R.drawable.sym_def_app_icon)); }
-    }
-
-    // Small adapter because ImageView.setImageDrawable expects Drawable directly.
-    private static class DrawableHolder extends android.graphics.drawable.Drawable {
-        private final android.graphics.drawable.Drawable d;
-        DrawableHolder(android.graphics.drawable.Drawable d){this.d=d;}
-        public void draw(android.graphics.Canvas c){d.setBounds(getBounds());d.draw(c);}
-        public void setAlpha(int a){d.setAlpha(a);} public void setColorFilter(android.graphics.ColorFilter f){d.setColorFilter(f);}
-        public int getOpacity(){return d.getOpacity();}
-        public int getIntrinsicWidth(){return d.getIntrinsicWidth();} public int getIntrinsicHeight(){return d.getIntrinsicHeight();}
-    }
-
-    private TextView label(String s, float size, int color) {
-        TextView t=new TextView(this); t.setText(s); t.setTextSize(size); t.setTextColor(color); return t;
-    }
-
-    private void openDetails(JSONObject o) {
-        Intent i = new Intent(this, DetectionDetailsActivity.class);
-        i.putExtra("package", o.optString("package"));
-        i.putExtra("label", o.optString("label"));
-        i.putExtra("reason", o.optString("reason"));
-        i.putExtra("time", o.optLong("time"));
-        startActivity(i);
-    }
-
-    private void showAccessibilityDisclosure() {
-        new AlertDialog.Builder(this)
-                .setTitle("Enable Popup Detector")
-                .setMessage("Accessibility access lets the detector observe app-window changes and visible text so it can identify a possible external popup source. It does not automatically uninstall or control other apps.\n\nFor the closest behavior to the reference app, also allow the floating detector overlay.")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Open Accessibility", (d,w) -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)))
-                .show();
-    }
-
-    private void openOverlaySettings() {
-        try { startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:"+getPackageName()))); }
-        catch(Exception e){ startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)); }
-    }
-
-    private boolean isAccessibilityServiceEnabled() {
-        String enabled = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-        if (enabled == null) return false;
-        String wanted = new ComponentName(this, PopupAccessibilityService.class).flattenToString();
-        return enabled.contains(wanted);
-    }
-
-    private void showOverlayApps() {
-        PackageManager pm=getPackageManager();
-        StringBuilder out=new StringBuilder(); int n=0;
-        for(ApplicationInfo a:pm.getInstalledApplications(PackageManager.GET_META_DATA)){
-            if((a.flags & ApplicationInfo.FLAG_SYSTEM)!=0) continue;
-            try{
-                PackageInfo p=pm.getPackageInfo(a.packageName,PackageManager.GET_PERMISSIONS);
-                boolean overlay=false;
-                if(p.requestedPermissions!=null) for(String perm:p.requestedPermissions) if("android.permission.SYSTEM_ALERT_WINDOW".equals(perm)){overlay=true;break;}
-                if(overlay){
-                    if(n++>0) out.append("\n\n");
-                    out.append(a.loadLabel(pm)).append("\n").append(a.packageName);
-                }
-            }catch(Exception ignored){}
-        }
-        if(n==0) out.append("No non-system apps requesting overlay permission were found.");
-        new AlertDialog.Builder(this).setTitle("Apps with overlay capability").setMessage(out.toString()).setPositiveButton("Close",null).show();
-    }
+    private Button button(String s){Button b=new Button(this);b.setText(s);b.setTextSize(13);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,dp(4),0,dp(4));b.setLayoutParams(p);return b;}
+    private void refresh(){if(status==null)return;boolean a=isAccessibilityEnabled(),o=Settings.canDrawOverlays(this);status.setText(a&&o?"● DETECTOR ACTIVE":a?"● ACCESSIBILITY ACTIVE — ALLOW FLOATING DETECTOR":"○ DETECTOR OFF — ENABLE ACCESSIBILITY");JSONArray x=DetectionStore.read(this);count.setText(x.length()+" record"+(x.length()==1?"":"s"));render(x);}
+    private void render(JSONArray a){records.removeAllViews();if(a.length()==0){TextView e=txt("No popup source records yet.\nEnable the detector and use your phone normally.",14,Color.rgb(165,190,210));e.setPadding(dp(12),dp(16),dp(12),dp(16));records.addView(e);return;}for(int i=0;i<a.length();i++){JSONObject o=a.optJSONObject(i);if(o!=null)records.addView(card(o));}}
+    private View card(JSONObject o){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.HORIZONTAL);c.setGravity(Gravity.CENTER_VERTICAL);c.setPadding(dp(10),dp(10),dp(8),dp(10));GradientDrawable g=new GradientDrawable();g.setColor(Color.rgb(16,30,48));g.setCornerRadius(dp(16));c.setBackground(g);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,0,0,dp(8));c.setLayoutParams(cp);
+        ImageView i=new ImageView(this);try{i.setImageDrawable(getPackageManager().getApplicationIcon(o.optString("package")));}catch(Exception e){i.setImageResource(android.R.drawable.sym_def_app_icon);}c.addView(i,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(10),0,dp(5),0);TextView n=txt(o.optString("label","Unknown app"),15,Color.WHITE);n.setTypeface(Typeface.DEFAULT,Typeface.BOLD);box.addView(n);box.addView(txt(o.optString("reason","Popup-style activity"),11,Color.rgb(165,190,210)));box.addView(txt(DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(new Date(o.optLong("time",0))),10,Color.rgb(125,160,190)));c.addView(box,new LinearLayout.LayoutParams(0,-2,1));TextView ar=txt("›",30,Color.rgb(25,184,255));c.addView(ar,new LinearLayout.LayoutParams(dp(28),dp(48)));c.setOnClickListener(v->open(o));return c;}
+    private void open(JSONObject o){Intent i=new Intent(this,DetectionDetailsActivity.class);i.putExtra("package",o.optString("package"));i.putExtra("label",o.optString("label"));i.putExtra("reason",o.optString("reason"));i.putExtra("time",o.optLong("time"));startActivity(i);}
+    private void showDisclosure(){new AlertDialog.Builder(this).setTitle("Enable Popup Detector").setMessage("Accessibility access is required to observe app-window changes and visible popup text. The detector uses those signals to identify a possible external popup source. It does not automatically uninstall apps.").setNegativeButton("CANCEL",null).setPositiveButton("OPEN ACCESSIBILITY",(d,w)->startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))).show();}
+    private void openOverlay(){try{startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:"+getPackageName())));}catch(Exception e){startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION));}}
+    private boolean isAccessibilityEnabled(){String s=Settings.Secure.getString(getContentResolver(),Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);if(s==null)return false;String wanted=new ComponentName(this,PopupAccessibilityService.class).flattenToString();return s.contains(wanted);}
 }

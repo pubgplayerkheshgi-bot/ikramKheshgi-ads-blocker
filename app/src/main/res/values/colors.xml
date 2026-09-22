@@ -1,6 +1,8 @@
 <resources>
-    <color name="brand_blue">#19B8FF</color>
-    <color name="brand_dark">#07111F</color>
-    <color name="brand_panel">#0E1C2E</color>
-    <color name="white">#FFFFFF</color>
+    <color name="bg">#07111F</color>
+    <color name="panel">#102238</color>
+    <color name="panel2">#152B44</color>
+    <color name="accent">#19B8FF</color>
+    <color name="text">#FFFFFF</color>
+    <color name="muted">#AFC2D4</color>
 </resources>

@@ -1,48 +1,17 @@
-plugins {
-    id 'com.android.application'
-}
+plugins { id 'com.android.application' }
 
 android {
     namespace 'com.ikramkheshgi.popupdetector'
     compileSdk 35
-
     defaultConfig {
         applicationId 'com.ikramkheshgi.popupdetector'
         minSdk 23
         targetSdk 35
-        versionCode 3
-        versionName '2.0'
+        versionCode 4
+        versionName '2.1'
     }
-
-    signingConfigs {
-        release {
-            def keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
-            def keystorePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
-            def keyAliasValue = System.getenv("RELEASE_KEY_ALIAS")
-            def keyPasswordValue = System.getenv("RELEASE_KEY_PASSWORD")
-
-            if (keystorePath != null &&
-                keystorePassword != null &&
-                keyAliasValue != null &&
-                keyPasswordValue != null) {
-
-                storeFile file(keystorePath)
-                storePassword keystorePassword
-                keyAlias keyAliasValue
-                keyPassword keyPasswordValue
-            }
-        }
-    }
-
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
-
-        release {
-            if (System.getenv("RELEASE_KEYSTORE_PATH") != null) {
-                signingConfig signingConfigs.release
-            }
-        }
+        debug { signingConfig signingConfigs.debug }
+        release { }
     }
 }
