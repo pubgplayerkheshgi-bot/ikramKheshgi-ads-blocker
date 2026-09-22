@@ -18,6 +18,20 @@ jobs:
           java-version: "17"
           distribution: temurin
           cache: gradle
+      - name: Prepare release signing
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$HOME/ikramkheshgi-release.jks"
+          cat > "$HOME/.ikramkheshgi-signing.properties" <<EOF
+          storeFile=$HOME/ikramkheshgi-release.jks
+          storePassword=$RELEASE_KEYSTORE_PASSWORD
+          keyAlias=$RELEASE_KEY_ALIAS
+          keyPassword=$RELEASE_KEY_PASSWORD
+          EOF
       - name: Grant execute permission
         run: chmod +x gradlew
       - name: Build debug and release
